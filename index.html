@@ -12,6 +12,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Manrope:wght@300;400;500;600;700&family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
 
+<!-- 토스페이먼츠 결제 SDK -->
+<script src="https://js.tosspayments.com/v1/payment"></script>
+
 <style>
   /* ===============================
      Design Tokens
@@ -1147,7 +1150,7 @@
   .policy-modal {
     position: fixed;
     inset: 0;
-    z-index: 1000;
+    z-index: 1200;
     display: none;
     align-items: center;
     justify-content: center;
@@ -1248,6 +1251,385 @@
     font-size: 13.5px;
   }
   body.modal-open { overflow: hidden; }
+
+  /* ===============================
+     Payment Modal
+     =============================== */
+  .pay-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background: rgba(20, 20, 15, 0.6);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .pay-modal.show { display: flex; opacity: 1; }
+  .pay-modal-box {
+    background: var(--bg);
+    border-radius: 12px;
+    max-width: 560px;
+    width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+    overflow: hidden;
+  }
+  .pay-modal.show .pay-modal-box { transform: translateY(0); }
+  .pay-modal-header {
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .pay-modal-title {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .pay-modal-close {
+    background: transparent;
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-soft);
+    transition: background 0.2s;
+  }
+  .pay-modal-close:hover { background: var(--bg-alt); color: var(--ink); }
+  .pay-modal-body {
+    padding: 28px 32px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  /* Steps Indicator */
+  .pay-steps {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--line);
+  }
+  .pay-step-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .pay-step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--bg-alt);
+    color: var(--ink-mute);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--sans);
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .pay-step-item.active .pay-step-num {
+    background: var(--ink);
+    color: var(--bg);
+  }
+  .pay-step-item.done .pay-step-num {
+    background: var(--accent);
+    color: var(--accent-bright);
+  }
+  .pay-step-label {
+    font-size: 13px;
+    color: var(--ink-mute);
+    font-weight: 500;
+  }
+  .pay-step-item.active .pay-step-label { color: var(--ink); font-weight: 600; }
+
+  /* Section Title in Modal */
+  .pay-section-title {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 16px;
+    letter-spacing: -0.01em;
+  }
+
+  /* Product Option Card */
+  .pay-options { display: flex; flex-direction: column; gap: 10px; }
+  .pay-option {
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .pay-option:hover { border-color: var(--ink-mute); }
+  .pay-option.selected {
+    border-color: var(--ink);
+    background: var(--bg-alt);
+  }
+  .pay-option-info { flex: 1; }
+  .pay-option-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+  }
+  .pay-option-desc {
+    font-size: 12.5px;
+    color: var(--ink-mute);
+    line-height: 1.5;
+  }
+  .pay-option-radio {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--line);
+    flex-shrink: 0;
+    position: relative;
+    transition: all 0.2s;
+  }
+  .pay-option.selected .pay-option-radio {
+    border-color: var(--ink);
+    background: var(--ink);
+  }
+  .pay-option.selected .pay-option-radio::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 8px; height: 8px;
+    background: var(--bg);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  /* Period Selector */
+  .pay-periods {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .pay-period {
+    border: 1.5px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg);
+    text-align: center;
+  }
+  .pay-period:hover { border-color: var(--ink-mute); }
+  .pay-period.selected {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: var(--bg);
+  }
+  .pay-period-label {
+    font-size: 13px;
+    color: var(--ink-mute);
+    font-family: var(--sans);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin-bottom: 6px;
+  }
+  .pay-period.selected .pay-period-label { color: rgba(250,249,246,0.6); }
+  .pay-period-price {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+    margin-bottom: 2px;
+  }
+  .pay-period.selected .pay-period-price { color: var(--bg); }
+  .pay-period-save {
+    font-size: 10.5px;
+    color: var(--accent-warm);
+    font-weight: 600;
+    font-family: var(--sans);
+  }
+  .pay-period.selected .pay-period-save { color: var(--accent-bright); }
+
+  /* Order Summary */
+  .pay-summary {
+    background: var(--bg-alt);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 24px 0;
+  }
+  .pay-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 6px 0;
+    font-size: 14px;
+  }
+  .pay-summary-row.divider {
+    margin-top: 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+  .pay-summary-label { color: var(--ink-mute); }
+  .pay-summary-value { color: var(--ink); font-weight: 500; }
+  .pay-summary-row.total .pay-summary-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  .pay-summary-row.total .pay-summary-value {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+
+  /* Agreements */
+  .pay-agreements {
+    margin: 20px 0 24px;
+    padding: 16px 18px;
+    background: var(--bg-alt);
+    border-radius: 10px;
+  }
+  .pay-agree-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.5;
+    cursor: pointer;
+  }
+  .pay-agree-item input[type="checkbox"] {
+    margin-top: 2px;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  .pay-agree-item a {
+    color: var(--accent);
+    text-decoration: underline;
+    font-weight: 500;
+  }
+  .pay-agree-divider {
+    border: none;
+    border-top: 1px solid var(--line);
+    margin: 6px 0;
+  }
+
+  /* Footer Buttons */
+  .pay-modal-footer {
+    padding: 20px 32px 28px;
+    border-top: 1px solid var(--line);
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+  .pay-footer-info {
+    font-size: 11px;
+    color: var(--ink-mute);
+    line-height: 1.6;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .pay-footer-info strong {
+    color: var(--ink-soft);
+    font-weight: 600;
+  }
+  .pay-actions {
+    display: flex;
+    gap: 10px;
+  }
+  .pay-btn {
+    padding: 14px 20px;
+    border-radius: 100px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+  .pay-btn-back {
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--line);
+    flex: 0 0 auto;
+    padding: 14px 24px;
+  }
+  .pay-btn-back:hover { border-color: var(--ink); }
+  .pay-btn-primary {
+    background: var(--ink);
+    color: var(--bg);
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .pay-btn-primary:hover { background: var(--accent); }
+  .pay-btn-primary:disabled {
+    background: var(--ink-mute);
+    cursor: not-allowed;
+  }
+
+  /* Step Panel Switching */
+  .pay-step-panel { display: none; }
+  .pay-step-panel.active { display: block; }
+
+  /* Success Screen */
+  .pay-success {
+    text-align: center;
+    padding: 40px 20px;
+  }
+  .pay-success-icon {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 24px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-bright);
+  }
+  .pay-success h3 {
+    font-family: var(--serif);
+    font-size: 24px;
+    font-weight: 500;
+    margin-bottom: 12px;
+    color: var(--ink);
+  }
+  .pay-success p {
+    color: var(--ink-soft);
+    font-size: 14px;
+    line-height: 1.7;
+  }
 
   /* ===============================
      Animations
@@ -1615,7 +1997,7 @@
           <li>유튜브 숏츠 · 릴스 · 틱톡 최적화</li>
           <li><strong>숏폼 콘텐츠 월 3편 제공</strong></li>
         </ul>
-        <button class="pricing-cta" onclick="scrollToContact('인스타그램 빌딩')">상담 신청하기</button>
+        <button class="pricing-cta" onclick="openPayment('building')">결제하기</button>
       </div>
 
       <!-- 인스타그램 스케일업 (featured) -->
@@ -1646,7 +2028,7 @@
           <li>유튜브 숏츠 · 릴스 · 틱톡 최적화</li>
           <li><strong>숏폼 콘텐츠 월 5편 제공</strong></li>
         </ul>
-        <button class="pricing-cta" onclick="scrollToContact('인스타그램 스케일업')">상담 신청하기</button>
+        <button class="pricing-cta" onclick="openPayment('scaleup')">결제하기</button>
       </div>
 
       <!-- 유튜브 X 인스타그램 그로스 -->
@@ -1676,11 +2058,11 @@
           <li>숏폼 콘텐츠 월 2편 제공</li>
           <li><strong>유튜브 롱폼 콘텐츠 월 2편 제공</strong></li>
         </ul>
-        <button class="pricing-cta" onclick="scrollToContact('유튜브 X 인스타그램 그로스')">상담 신청하기</button>
+        <button class="pricing-cta" onclick="openPayment('growth')">결제하기</button>
       </div>
     </div>
 
-    <p class="pricing-note">※ 모든 금액은 VAT 별도이며, 실제 적용 서비스는 계약 상품 기준으로 진행됩니다. 최종 비용은 상담 후 확정됩니다.</p>
+    <p class="pricing-note">※ 모든 금액은 VAT 별도이며, 결제 시 VAT 10%가 포함됩니다. 실제 적용 서비스는 계약 상품 기준으로 진행됩니다.</p>
   </div>
 </section>
 
@@ -1827,6 +2209,166 @@
     </div>
   </div>
 </footer>
+
+<!-- ========== POLICY MODALS ========== -->
+
+<!-- 결제 모달 -->
+<div class="pay-modal" id="payModal" onclick="if(event.target===this) closePayment()">
+  <div class="pay-modal-box">
+    <div class="pay-modal-header">
+      <div class="pay-modal-title">결제하기</div>
+      <button class="pay-modal-close" onclick="closePayment()" aria-label="닫기">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M4 4l10 10M14 4L4 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="pay-modal-body">
+      <!-- Steps Indicator -->
+      <div class="pay-steps">
+        <div class="pay-step-item active" id="payStepInd1">
+          <div class="pay-step-num">1</div>
+          <div class="pay-step-label">상품 선택</div>
+        </div>
+        <div class="pay-step-item" id="payStepInd2">
+          <div class="pay-step-num">2</div>
+          <div class="pay-step-label">기간 · 확인</div>
+        </div>
+      </div>
+
+      <!-- STEP 1: 상품 선택 -->
+      <div class="pay-step-panel active" id="payStep1">
+        <h3 class="pay-section-title">상품을 선택하세요</h3>
+        <div class="pay-options">
+          <div class="pay-option" data-product="building" onclick="selectProduct('building')">
+            <div class="pay-option-info">
+              <div class="pay-option-name">인스타그램 빌딩</div>
+              <div class="pay-option-desc">숏폼 콘텐츠 월 3편 · 계정 세팅 및 운영</div>
+            </div>
+            <div class="pay-option-radio"></div>
+          </div>
+          <div class="pay-option" data-product="scaleup" onclick="selectProduct('scaleup')">
+            <div class="pay-option-info">
+              <div class="pay-option-name">인스타그램 스케일업</div>
+              <div class="pay-option-desc">숏폼 콘텐츠 월 5편 · 운영 관리 포함</div>
+            </div>
+            <div class="pay-option-radio"></div>
+          </div>
+          <div class="pay-option" data-product="growth" onclick="selectProduct('growth')">
+            <div class="pay-option-info">
+              <div class="pay-option-name">유튜브 × 인스타그램 그로스</div>
+              <div class="pay-option-desc">유튜브 롱폼 2편 · 숏폼 2편 · 자동화 시스템</div>
+            </div>
+            <div class="pay-option-radio"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: 기간 선택 + 확인 -->
+      <div class="pay-step-panel" id="payStep2">
+        <h3 class="pay-section-title">결제 기간을 선택하세요</h3>
+        <div class="pay-periods">
+          <div class="pay-period" data-period="1" onclick="selectPeriod(1)">
+            <div class="pay-period-label">1개월</div>
+            <div class="pay-period-price" id="price1">-</div>
+            <div class="pay-period-save">&nbsp;</div>
+          </div>
+          <div class="pay-period" data-period="3" onclick="selectPeriod(3)">
+            <div class="pay-period-label">3개월</div>
+            <div class="pay-period-price" id="price3">-</div>
+            <div class="pay-period-save">10% 할인</div>
+          </div>
+          <div class="pay-period" data-period="6" onclick="selectPeriod(6)">
+            <div class="pay-period-label">6개월</div>
+            <div class="pay-period-price" id="price6">-</div>
+            <div class="pay-period-save">15% 할인</div>
+          </div>
+        </div>
+
+        <!-- 주문 요약 -->
+        <div class="pay-summary" id="paySummary" style="display:none">
+          <div class="pay-summary-row">
+            <span class="pay-summary-label">상품</span>
+            <span class="pay-summary-value" id="sumProduct">-</span>
+          </div>
+          <div class="pay-summary-row">
+            <span class="pay-summary-label">기간</span>
+            <span class="pay-summary-value" id="sumPeriod">-</span>
+          </div>
+          <div class="pay-summary-row">
+            <span class="pay-summary-label">공급가액</span>
+            <span class="pay-summary-value" id="sumBase">-</span>
+          </div>
+          <div class="pay-summary-row">
+            <span class="pay-summary-label">부가세 (VAT 10%)</span>
+            <span class="pay-summary-value" id="sumVat">-</span>
+          </div>
+          <div class="pay-summary-row total divider">
+            <span class="pay-summary-label">총 결제금액</span>
+            <span class="pay-summary-value" id="sumTotal">-</span>
+          </div>
+        </div>
+
+        <!-- 약관 동의 -->
+        <div class="pay-agreements">
+          <label class="pay-agree-item">
+            <input type="checkbox" id="agreeAll" onchange="toggleAllAgree()" />
+            <span><strong>아래 약관에 모두 동의합니다.</strong></span>
+          </label>
+          <hr class="pay-agree-divider">
+          <label class="pay-agree-item">
+            <input type="checkbox" class="agree-item" id="agreeRefund" />
+            <span>(필수) <a href="#" onclick="openPolicy('refund'); return false;">환불 규정</a>을 확인하였으며 이에 동의합니다.</span>
+          </label>
+          <label class="pay-agree-item">
+            <input type="checkbox" class="agree-item" id="agreeTerms" />
+            <span>(필수) <a href="#" onclick="openPolicy('terms'); return false;">이용약관</a>에 동의합니다.</span>
+          </label>
+          <label class="pay-agree-item">
+            <input type="checkbox" class="agree-item" id="agreePrivacy" />
+            <span>(필수) <a href="#" onclick="openPolicy('privacy'); return false;">개인정보처리방침</a>에 동의합니다.</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 회사 정보 + 결제 버튼 -->
+    <div class="pay-modal-footer">
+      <div class="pay-footer-info">
+        <strong>유니콘하우스</strong> · 대표 김동훈 · 사업자등록번호 498-31-01817<br>
+        통신판매업: 광고대행업 · 충북 청주시 흥덕구 서경로24번길 9, 1층<br>
+        문의: 010-3913-1657 · unicornhouse@gtattraction.com
+      </div>
+      <div class="pay-actions">
+        <button class="pay-btn pay-btn-back" id="payBackBtn" onclick="payPrevStep()" style="display:none">이전</button>
+        <button class="pay-btn pay-btn-primary" id="payNextBtn" onclick="payNextStep()" disabled>다음 단계</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 결제 완료 모달 -->
+<div class="pay-modal" id="payDoneModal" onclick="if(event.target===this) closePayDone()">
+  <div class="pay-modal-box" style="max-width:480px">
+    <div class="pay-modal-body">
+      <div class="pay-success">
+        <div class="pay-success-icon">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+            <path d="M7 16l6 6 12-12" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <h3>결제가 완료되었습니다</h3>
+        <p>유니콘하우스를 선택해주셔서 감사합니다.<br>담당자가 곧 연락드려 서비스 진행 일정을 안내드리겠습니다.</p>
+      </div>
+    </div>
+    <div class="pay-modal-footer">
+      <div class="pay-actions">
+        <button class="pay-btn pay-btn-primary" onclick="closePayDone()">확인</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ========== POLICY MODALS ========== -->
 
@@ -2192,11 +2734,241 @@
   }
   function closePolicy() {
     document.querySelectorAll('.policy-modal.show').forEach(m => m.classList.remove('show'));
-    document.body.classList.remove('modal-open');
+    // 결제 모달이 열려있으면 modal-open 유지
+    if (!document.querySelector('.pay-modal.show')) {
+      document.body.classList.remove('modal-open');
+    }
   }
   // ESC 키로 닫기
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closePolicy();
+    if (e.key === 'Escape') {
+      closePolicy();
+      closePayment();
+      closePayDone();
+    }
+  });
+
+  /* ===========================================================
+     토스페이먼츠 결제 모달
+     =========================================================== */
+  // ⚠️ 실 운영 시: 본인 라이브 클라이언트 키로 교체
+  const TOSS_CLIENT_KEY = 'test_gck_GePWvyJnrKjxWjlLG7wEVgLzN97E';
+
+  // 상품 정보 (VAT 별도 가격 기준)
+  const PRODUCTS = {
+    building: {
+      name: '인스타그램 빌딩',
+      prices: { 1: 980000, 3: 2646000, 6: 4998000 }
+    },
+    scaleup: {
+      name: '인스타그램 스케일업',
+      prices: { 1: 1890000, 3: 5103000, 6: 9639000 }
+    },
+    growth: {
+      name: '유튜브 × 인스타그램 그로스',
+      prices: { 1: 2780000, 3: 7506000, 6: 14178000 }
+    }
+  };
+
+  let payState = {
+    step: 1,
+    product: null,
+    period: null
+  };
+
+  function openPayment(productKey) {
+    payState = { step: 1, product: productKey || null, period: null };
+    document.getElementById('payModal').classList.add('show');
+    document.body.classList.add('modal-open');
+    renderPayStep();
+    // 상품이 미리 지정되어 있으면 선택 표시
+    if (productKey) {
+      document.querySelectorAll('.pay-option').forEach(el => {
+        el.classList.toggle('selected', el.dataset.product === productKey);
+      });
+      updateNextButton();
+    }
+  }
+
+  function closePayment() {
+    document.getElementById('payModal').classList.remove('show');
+    if (!document.querySelector('.policy-modal.show') && !document.getElementById('payDoneModal').classList.contains('show')) {
+      document.body.classList.remove('modal-open');
+    }
+  }
+
+  function selectProduct(key) {
+    payState.product = key;
+    document.querySelectorAll('.pay-option').forEach(el => {
+      el.classList.toggle('selected', el.dataset.product === key);
+    });
+    updateNextButton();
+  }
+
+  function selectPeriod(months) {
+    payState.period = months;
+    document.querySelectorAll('.pay-period').forEach(el => {
+      el.classList.toggle('selected', parseInt(el.dataset.period) === months);
+    });
+    updateSummary();
+    updateNextButton();
+  }
+
+  function renderPayStep() {
+    // 단계 패널 전환
+    document.getElementById('payStep1').classList.toggle('active', payState.step === 1);
+    document.getElementById('payStep2').classList.toggle('active', payState.step === 2);
+
+    // 상단 인디케이터
+    const i1 = document.getElementById('payStepInd1');
+    const i2 = document.getElementById('payStepInd2');
+    i1.classList.remove('active', 'done');
+    i2.classList.remove('active', 'done');
+    if (payState.step === 1) {
+      i1.classList.add('active');
+    } else {
+      i1.classList.add('done');
+      i2.classList.add('active');
+    }
+
+    // 버튼 상태
+    document.getElementById('payBackBtn').style.display = payState.step === 1 ? 'none' : 'block';
+    const nextBtn = document.getElementById('payNextBtn');
+    nextBtn.innerHTML = payState.step === 1
+      ? '다음 단계'
+      : '결제 진행하기 <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    // STEP 2 진입 시 기간별 가격 갱신
+    if (payState.step === 2 && payState.product) {
+      const p = PRODUCTS[payState.product].prices;
+      document.getElementById('price1').textContent = formatPrice(Math.round(p[1] * 1.1));
+      document.getElementById('price3').textContent = formatPrice(Math.round(p[3] * 1.1));
+      document.getElementById('price6').textContent = formatPrice(Math.round(p[6] * 1.1));
+    }
+
+    updateNextButton();
+  }
+
+  function updateSummary() {
+    const summary = document.getElementById('paySummary');
+    if (!payState.product || !payState.period) {
+      summary.style.display = 'none';
+      return;
+    }
+    const product = PRODUCTS[payState.product];
+    const base = product.prices[payState.period];
+    const vat = Math.round(base * 0.1);
+    const total = base + vat;
+
+    document.getElementById('sumProduct').textContent = product.name;
+    document.getElementById('sumPeriod').textContent = payState.period + '개월';
+    document.getElementById('sumBase').textContent = formatPrice(base);
+    document.getElementById('sumVat').textContent = formatPrice(vat);
+    document.getElementById('sumTotal').textContent = formatPrice(total);
+    summary.style.display = 'block';
+  }
+
+  function formatPrice(n) {
+    return n.toLocaleString('ko-KR') + '원';
+  }
+
+  function updateNextButton() {
+    const nextBtn = document.getElementById('payNextBtn');
+    if (payState.step === 1) {
+      nextBtn.disabled = !payState.product;
+    } else {
+      const agreed = document.getElementById('agreeRefund').checked
+                  && document.getElementById('agreeTerms').checked
+                  && document.getElementById('agreePrivacy').checked;
+      nextBtn.disabled = !(payState.product && payState.period && agreed);
+    }
+  }
+
+  function payNextStep() {
+    if (payState.step === 1) {
+      payState.step = 2;
+      renderPayStep();
+    } else {
+      // 결제 진행
+      requestTossPayment();
+    }
+  }
+
+  function payPrevStep() {
+    if (payState.step === 2) {
+      payState.step = 1;
+      renderPayStep();
+    }
+  }
+
+  function toggleAllAgree() {
+    const all = document.getElementById('agreeAll').checked;
+    document.querySelectorAll('.agree-item').forEach(cb => { cb.checked = all; });
+    updateNextButton();
+  }
+
+  // 개별 약관 체크 변화 감지
+  document.addEventListener('change', (e) => {
+    if (e.target.classList && e.target.classList.contains('agree-item')) {
+      const all = Array.from(document.querySelectorAll('.agree-item')).every(cb => cb.checked);
+      const allCb = document.getElementById('agreeAll');
+      if (allCb) allCb.checked = all;
+      updateNextButton();
+    }
+  });
+
+  function requestTossPayment() {
+    if (!window.TossPayments) {
+      alert('결제 모듈을 불러오지 못했습니다. 페이지를 새로고침해 주세요.');
+      return;
+    }
+    const product = PRODUCTS[payState.product];
+    const base = product.prices[payState.period];
+    const amount = base + Math.round(base * 0.1); // VAT 포함
+
+    const orderId = 'UH_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+    const orderName = `${product.name} (${payState.period}개월)`;
+
+    const tossPayments = TossPayments(TOSS_CLIENT_KEY);
+    tossPayments.requestPayment('카드', {
+      amount: amount,
+      orderId: orderId,
+      orderName: orderName,
+      customerName: '결제자',
+      successUrl: window.location.origin + window.location.pathname + '?payment=success',
+      failUrl: window.location.origin + window.location.pathname + '?payment=fail',
+    }).catch(function (error) {
+      if (error.code === 'USER_CANCEL') {
+        // 사용자 취소 → 무시
+      } else {
+        alert('결제 진행 중 오류가 발생했습니다: ' + error.message);
+      }
+    });
+  }
+
+  function closePayDone() {
+    document.getElementById('payDoneModal').classList.remove('show');
+    document.body.classList.remove('modal-open');
+    // URL의 ?payment=success 제거
+    if (window.history.replaceState) {
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }
+
+  // 페이지 로드 시 결제 결과 확인
+  window.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('payment') === 'success') {
+      document.getElementById('payDoneModal').classList.add('show');
+      document.body.classList.add('modal-open');
+    } else if (params.get('payment') === 'fail') {
+      alert('결제가 완료되지 않았습니다. 다시 시도해주세요.');
+      if (window.history.replaceState) {
+        const cleanUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      }
+    }
   });
 
   /* ===== Form 제출 (Google Apps Script 연동) =====
